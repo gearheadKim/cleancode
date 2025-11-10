@@ -1,26 +1,22 @@
 package Order.src;
 
 import java.math.BigDecimal;
-import java.util.List;
 import java.util.UUID;
 
 public class OrderService {
 
-    LogService logService;
+    private final LogService logService = new LogService();
 
-    public String checkout(String raw, boolean vip, List<String> errors) {
-        logService = new LogService();
+    public String checkout(String raw, boolean vip) {
 
         // 로깅
         logService.firstLog(raw, vip);
 
         // 파싱
-        OrderVo orderVo = createOrderVo(raw, vip, errors);
+        OrderVo orderVo = createOrderVo(raw, vip);
 
         // 검증
-        if (!isValid(orderVo, errors)) {
-            logService.errorLog();
-        }
+        isValid(orderVo);
 
         // 가격(매직넘버 다수)
         BigDecimal sum = price(orderVo);
@@ -28,8 +24,7 @@ public class OrderService {
 
         // 재고 확인(임시)
         if (orderVo.getQty() > 20) {
-            errors.add("OUT_OF_STOCK");
-            logService.errorLog();
+            throw new OutOfStockException("OUT_OF_STOCK");
         }
 
         // 저장(모킹) + 사이드이펙트
@@ -45,12 +40,11 @@ public class OrderService {
         return receipt;
     }
 
-    public OrderVo createOrderVo(String raw, boolean vip, List<String> errors) {
+    public OrderVo createOrderVo(String raw, boolean vip) {
         // raw: "userId , itemId , qty , coupon"
         String[] parts = raw.split(",");
         if (parts.length < 3) {
-            errors.add("INVALID_FORMAT");
-            logService.errorLog();
+            throw new ValidationException("INVALID_FORMAT");
         }
 
         String userId = parts[0].trim();
@@ -62,34 +56,26 @@ public class OrderService {
         try {
             qty = Integer.parseInt(qtyStr);
         } catch (Exception ex) {
-            errors.add("QTY_NOT_NUMBER");
-            logService.errorLog();
+            throw new ValidationException("QTY_NOT_NUMBER");
         }
 
         return new OrderVo(userId, itemId, qty, coupon, vip);
     }
 
-    public boolean isValid(OrderVo orderVo, List<String> errors) {
-
+    public void isValid(OrderVo orderVo) {
         String userId = orderVo.getUserId();
         if (userId.isEmpty()) {
-            errors.add("USER_REQUIRED");
-            logService.errorLog();
-            return false;
+            throw new ValidationException("USER_REQUIRED");
         }
         String itemId = orderVo.getItemId();
         if (itemId.isEmpty()) {
-            errors.add("ITEM_REQUIRED");
-            logService.errorLog();
+            throw new ValidationException("ITEM_REQUIRED");
         }
 
         int qty = orderVo.getQty();
         if (qty <= 0) {
-            errors.add("QTY_POSITIVE");
-            logService.errorLog();
+            throw new ValidationException("QTY_POSITIVE");
         }
-
-        return true;
     }
 
     public BigDecimal price(OrderVo orderVo) {

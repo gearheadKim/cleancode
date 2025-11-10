@@ -1,7 +1,5 @@
 package Order.src;
 
-import java.util.*;
-
 class Main {
     public static void main(String[] args) {
 
@@ -23,18 +21,20 @@ class Main {
 
         OrderService orderService = new OrderService();
 
-        List<String> error;
         // 정상 케이스
-        error = new ArrayList<>();
-        String successReceipt = orderService.checkout("vip001 , A-100 , 2 , COUPON10", true, error);
-        System.out.println("RECEIPT=" + successReceipt);
-        System.out.println("ERRORS=" + error);
+        try {
+            String successReceipt = orderService.checkout("vip001 , A-100 , 2 , COUPON10", true);
+            System.out.println("RECEIPT=" + successReceipt);
+        } catch (ValidationException error) {
+            System.out.println("ERRORS=" + error.getMessage());
+        }
 
         // 입력 에러 케이스
-        error = new ArrayList<>();
-        String inputErrorReceipt = orderService.checkout(" ,A-100,-1,", false, error);
-        System.out.println("RECEIPT=" + inputErrorReceipt);
-        System.out.println("ERRORS=" + error);
-
+        try {
+            String inputErrorReceipt = orderService.checkout(" ,A-100,-1,", false);
+            System.out.println("RECEIPT=" + inputErrorReceipt);
+        } catch (ValidationException error) {
+            System.out.println("ERRORS=" + error.getMessage());
+        }
     }
 }
